@@ -1,7 +1,6 @@
 'use strict';
 
 const fs = require('fs');
-const gunzip = require('zlib').createGunzip();
 const {Transform} = require('stream');
 
 const async = require('async');
@@ -32,7 +31,7 @@ let not_follow_count = new Map();
 let follow_usage = 0;
 let not_follow_usage = 0;
 
-const files = '0123456789abcdefghijklmnopqrstuvwxyz'.split('').map(c => `googlebooks-eng-all-1gram-20120701-${c}.gz`);
+const files = '0123456789abcdefghijklmnopqrstuvwxyz'.split('').map(c => `googlebooks-eng-all-1gram-20120701-${c}`);
 
 const follow_re = /(^ie|[^c]ie|cei)/i;
 const not_follow_re = /(^ei|[^c]ei|cie)/i;
@@ -42,7 +41,7 @@ const parts_of_speech_suffix = /_[A-Z]$/;
 async.each(files, (file, callback) => {
     const stream = new Lines();
     stream.on('data', line => {
-        let [word, year, count, books] = line.split('\t');
+        let [word, year, count, books] = line.toString('utf8').split('\t');
         if (Number(year) < 1900 || Number(year) > 1999) {
             return;
         }
@@ -62,7 +61,7 @@ async.each(files, (file, callback) => {
     stream.on('end', () => {
         return callback();
     });
-    fs.createReadStream(file).pipe(gunzip).pipe(stream);
+    fs.createReadStream(file).pipe(stream);
 }, err => {
     if (err) {
         process.exit(1);
