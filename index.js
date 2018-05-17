@@ -2,9 +2,30 @@
 
 const fs = require('fs');
 const gunzip = require('zlib').createGunzip();
+const {Transform} = require('stream');
 
 const async = require('async');
-const byline = require('byline');
+
+class Lines extends Transform {
+    constructor(options) {
+        super(options);
+        this.left_over = '';
+    }
+
+    _transform(chunk, encoding, callback) {
+        chunk = chunk.toString('utf8');
+        const lines = chunk.split('\n');
+        lines[0] = this.left_over + lines[0];
+        this.left_over = lines.pop();
+        lines.forEach(line => this.push(line));
+        return setImmediate(callback);
+    }
+
+    _flush(callback) {
+        this.push(this.left_over);
+        return setImmediate(callback);
+    }
+}
 
 let follow_count = new Map();
 let not_follow_count = new Map();
@@ -19,7 +40,7 @@ const not_follow_re = /(^ei|[^c]ei|cie)/i;
 const parts_of_speech_suffix = /_[A-Z]$/;
 
 async.each(files, (file, callback) => {
-    const stream = byline(fs.createReadStream(file).pipe(gunzip));
+    const stream = new Lines();
     stream.on('data', line => {
         let [word, year, count, books] = line.split('\t');
         if (Number(year) < 1900 || Number(year) > 1999) {
@@ -41,6 +62,7 @@ async.each(files, (file, callback) => {
     stream.on('end', () => {
         return callback();
     });
+    fs.createReadStream(file).pipe(gunzip).pipe(stream);
 }, err => {
     if (err) {
         process.exit(1);
