@@ -3,6 +3,7 @@
     "license": "MIT",
     "author": "Chad Walker <chad@chad-cat-lore-eddie.com>",
     "dependencies": {
-        "async": "^2.6.0"
+        "async": "^2.6.0",
+        "lodash": "^4.17.15"
     }
 }
